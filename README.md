@@ -140,19 +140,37 @@ Recommended sources:
 
 ### 2. Raw FASTQ files
 
-The pipeline expects paired-end FASTQ files in:
+Place raw paired-end FASTQ files in the `data/` directory.
 
+Example:
+
+```text
+data/
+├── SAMPLE1_R1.fastq.gz
+├── SAMPLE1_R2.fastq.gz
+├── SAMPLE2_R1.fastq.gz
+└── SAMPLE2_R2.fastq.gz
 ```
+
+Input FASTQ files must be gzip-compressed (`*.fastq.gz`).
+
+If FASTQ files were generated using SRA Toolkit (`fasterq-dump`), compress them before running the pipeline:
+
+```bash
+gzip data/*.fastq
+```
+
+The `build_data_norm.sh` script creates a normalized set of symbolic links in:
+
+```text
 data_norm/
-    SAMPLE1_R1.fastq.gz
-    SAMPLE1_R2.fastq.gz
 ```
 
-Naming must follow this convention exactly.
+which is the directory used internally by the Snakemake workflow. Users should place files in `data/`, not `data_norm/`.
 
 ---
 
-### 2. Sample sheet
+### 3. Sample sheet
 
 A sample sheet is required:
 
