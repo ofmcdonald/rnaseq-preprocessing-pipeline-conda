@@ -40,15 +40,79 @@ if len(dups) > 0:
         f"Duplicate sample IDs detected: {list(dups)}"
     )
 
+# --------------------------------------------------
+# IDENTIFY SINGLE-END VS PAIRED-END SAMPLES
+# --------------------------------------------------
+
+PE_SAMPLES = []
+SE_SAMPLES = []
+
 for sample in SAMPLE_IDS:
+
     r1 = f"data_norm/{sample}_R1.fastq.gz"
     r2 = f"data_norm/{sample}_R2.fastq.gz"
+    se = f"data_norm/{sample}_SE.fastq.gz"
 
-    if not os.path.exists(r1):
-        raise FileNotFoundError(f"Missing: {r1}")
+    has_r1 = os.path.exists(r1)
+    has_r2 = os.path.exists(r2)
+    has_se = os.path.exists(se)
 
-    if not os.path.exists(r2):
-        raise FileNotFoundError(f"Missing: {r2}")
+    # Single-end
+    if has_se:
+        if has_r1 or has_r2:
+            raise ValueError(
+                f"Sample {sample} has both single-end and paired-end FASTQ files."
+            )
+
+        SE_SAMPLES.append(sample)
+
+    # Paired-end
+    elif has_r1 or has_r2:
+        if not has_r1:
+            raise FileNotFoundError(
+                f"Missing R1 for paired-end sample: {sample}"
+            )
+
+        if not has_r2:
+            raise FileNotFoundError(
+                f"Missing R2 for paired-end sample: {sample}"
+            )
+
+        PE_SAMPLES.append(sample)
+
+    # Nothing found
+    else:
+        raise FileNotFoundError(
+            f"No FASTQ files found for sample: {sample}"
+        )
+
+print(f"Detected {len(PE_SAMPLES)} paired-end samples")
+print(f"Detected {len(SE_SAMPLES)} single-end samples")
+
+if PE_SAMPLES:
+    print("Paired-end:", ", ".join(PE_SAMPLES))
+
+if SE_SAMPLES:
+    print("Single-end:", ", ".join(SE_SAMPLES))
+    
+def star_reads(wildcards):
+    sample = wildcards.sample
+
+    if sample in PE_SAMPLES:
+        return [
+            f"results/fastp/{sample}_R1_trimmed.fastq.gz",
+            f"results/fastp/{sample}_R2_trimmed.fastq.gz"
+        ]
+
+    elif sample in SE_SAMPLES:
+        return [
+            f"results/fastp/{sample}_SE_trimmed.fastq.gz"
+        ]
+
+    else:
+        raise ValueError(
+            f"Sample {sample} not classified as PE or SE"
+        )
 
 # --------------------------------------------------
 # FINAL TARGETS
@@ -56,34 +120,52 @@ for sample in SAMPLE_IDS:
 
 rule all:
     input:
-        # FastQC raw
+        # FastQC raw - paired-end
         expand(
             "results/fastqc_raw/{sample}_R1_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
         expand(
             "results/fastqc_raw/{sample}_R2_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
 
-        # Trimmed FASTQ
+        # FastQC raw - single-end
+        expand(
+            "results/fastqc_raw/{sample}_SE_fastqc.zip",
+            sample=SE_SAMPLES
+        ),
+
+        # Trimmed FASTQ - paired-end
         expand(
             "results/fastp/{sample}_R1_trimmed.fastq.gz",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
         expand(
             "results/fastp/{sample}_R2_trimmed.fastq.gz",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
 
-        # FastQC trimmed
+        # Trimmed FASTQ - single-end
+        expand(
+            "results/fastp/{sample}_SE_trimmed.fastq.gz",
+            sample=SE_SAMPLES
+        ),
+
+        # FastQC trimmed - paired-end
         expand(
             "results/fastqc_fastp/{sample}_R1_trimmed_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
         expand(
             "results/fastqc_fastp/{sample}_R2_trimmed_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
+        ),
+
+        # FastQC trimmed - single-end
+        expand(
+            "results/fastqc_fastp/{sample}_SE_trimmed_fastqc.zip",
+            sample=SE_SAMPLES
         ),
 
         # STAR outputs
@@ -150,10 +232,10 @@ rule star_index:
         """
 
 # --------------------------------------------------
-# FASTQC RAW
+# FASTQC RAW - PAIRED-END
 # --------------------------------------------------
 
-rule fastqc_raw:
+rule fastqc_raw_pe:
     input:
         r1="data_norm/{sample}_R1.fastq.gz",
         r2="data_norm/{sample}_R2.fastq.gz"
@@ -191,10 +273,48 @@ rule fastqc_raw:
         """
 
 # --------------------------------------------------
-# FASTP
+# FASTQC RAW - SINGLE-END
 # --------------------------------------------------
 
-rule fastp:
+rule fastqc_raw_se:
+    input:
+        "data_norm/{sample}_SE.fastq.gz"
+
+    output:
+        "results/fastqc_raw/{sample}_SE_fastqc.zip"
+
+    log:
+        "logs/fastqc_raw/{sample}.log"
+
+    benchmark:
+        "benchmarks/fastqc_raw/{sample}.txt"
+
+    conda:
+        "envs/fastqc.yaml"
+
+    threads: 2
+
+    resources:
+        mem_mb=4000,
+        runtime=60
+
+    shell:
+        """
+        mkdir -p results/fastqc_raw
+        mkdir -p logs/fastqc_raw
+
+        fastqc \
+            -t {threads} \
+            -o results/fastqc_raw \
+            {input} \
+            &> {log}
+        """
+
+# --------------------------------------------------
+# FASTP - PAIRED-END
+# --------------------------------------------------
+
+rule fastp_pe:
     input:
         r1="data_norm/{sample}_R1.fastq.gz",
         r2="data_norm/{sample}_R2.fastq.gz"
@@ -237,10 +357,52 @@ rule fastp:
         """
 
 # --------------------------------------------------
-# FASTQC TRIMMED
+# FASTP - SINGLE-END
 # --------------------------------------------------
 
-rule fastqc_trimmed:
+rule fastp_se:
+    input:
+        "data_norm/{sample}_SE.fastq.gz"
+
+    output:
+        trimmed="results/fastp/{sample}_SE_trimmed.fastq.gz",
+        html="results/fastp/{sample}.html",
+        json="results/fastp/{sample}.json"
+
+    log:
+        "logs/fastp/{sample}.log"
+
+    benchmark:
+        "benchmarks/fastp/{sample}.txt"
+
+    conda:
+        "envs/fastp.yaml"
+
+    threads: 2
+
+    resources:
+        mem_mb=8000,
+        runtime=180
+
+    shell:
+        """
+        mkdir -p results/fastp
+        mkdir -p logs/fastp
+
+        fastp \
+            -i {input} \
+            -o {output.trimmed} \
+            -w {threads} \
+            -h {output.html} \
+            -j {output.json} \
+            &> {log}
+        """
+
+# --------------------------------------------------
+# FASTQC TRIMMED - PAIRED-END
+# --------------------------------------------------
+
+rule fastqc_trimmed_pe:
     input:
         r1="results/fastp/{sample}_R1_trimmed.fastq.gz",
         r2="results/fastp/{sample}_R2_trimmed.fastq.gz"
@@ -278,13 +440,50 @@ rule fastqc_trimmed:
         """
 
 # --------------------------------------------------
+# FASTQC TRIMMED - SINGLE-END
+# --------------------------------------------------
+
+rule fastqc_trimmed_se:
+    input:
+        "results/fastp/{sample}_SE_trimmed.fastq.gz"
+
+    output:
+        "results/fastqc_fastp/{sample}_SE_trimmed_fastqc.zip"
+
+    log:
+        "logs/fastqc_trimmed/{sample}.log"
+
+    benchmark:
+        "benchmarks/fastqc_trimmed/{sample}.txt"
+
+    conda:
+        "envs/fastqc.yaml"
+
+    threads: 2
+
+    resources:
+        mem_mb=4000,
+        runtime=60
+
+    shell:
+        """
+        mkdir -p results/fastqc_fastp
+        mkdir -p logs/fastqc_trimmed
+
+        fastqc \
+            -t {threads} \
+            -o results/fastqc_fastp \
+            {input} \
+            &> {log}
+        """
+
+# --------------------------------------------------
 # STAR ALIGNMENT
 # --------------------------------------------------
 
 rule star_align:
     input:
-        r1="results/fastp/{sample}_R1_trimmed.fastq.gz",
-        r2="results/fastp/{sample}_R2_trimmed.fastq.gz",
+        reads=star_reads,
         index=STAR_INDEX
 
     output:
@@ -317,7 +516,7 @@ rule star_align:
 
         STAR \
             --genomeDir {input.index} \
-            --readFilesIn {input.r1} {input.r2} \
+            --readFilesIn {input.reads} \
             --readFilesCommand zcat \
             --runThreadN {threads} \
             --outSAMtype BAM SortedByCoordinate \
@@ -496,11 +695,15 @@ rule multiqc_raw:
     input:
         expand(
             "results/fastqc_raw/{sample}_R1_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
         expand(
             "results/fastqc_raw/{sample}_R2_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
+        ),
+        expand(
+            "results/fastqc_raw/{sample}_SE_fastqc.zip",
+            sample=SE_SAMPLES
         )
 
     output:
@@ -542,11 +745,15 @@ rule multiqc_trimmed:
     input:
         expand(
             "results/fastqc_fastp/{sample}_R1_trimmed_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
         ),
         expand(
             "results/fastqc_fastp/{sample}_R2_trimmed_fastqc.zip",
-            sample=SAMPLE_IDS
+            sample=PE_SAMPLES
+        ),
+        expand(
+            "results/fastqc_fastp/{sample}_SE_trimmed_fastqc.zip",
+            sample=SE_SAMPLES
         )
 
     output:

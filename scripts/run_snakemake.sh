@@ -7,6 +7,8 @@ SNAKEMAKE_BIN="snakemake"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKDIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+cd "$WORKDIR"
+
 "${SNAKEMAKE_BIN}" \
   --profile profiles/slurm \
   --executor slurm \

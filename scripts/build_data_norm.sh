@@ -32,6 +32,9 @@ for f in "$RAW_DIR"/*.fastq.gz; do
     elif [[ "$stem" =~ (.+)_2$ ]]; then
         sample="${BASH_REMATCH[1]}"
         read="R2"
+    elif [[ "$stem" =~ ^[^_]+$ ]]; then
+        sample="$stem"
+        read="SE"
     else
         echo "Skipping unrecognized file: $base"
         continue
