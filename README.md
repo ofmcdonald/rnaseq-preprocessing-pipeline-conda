@@ -755,7 +755,7 @@ Olivia McDonald, PhD
 
 If you use this pipeline, please cite it as:
 
-McDonald OK (2026). RNA-seq Preprocessing Pipeline (Mus musculus).
+McDonald OF (2026). RNA-seq Preprocessing Pipeline (Mus musculus).
 GitHub repository: [https://github.com/ofmcdonald/rnaseq-preprocessing-pipeline](https://github.com/ofmcdonald/rnaseq-preprocessing-pipeline)
 Version: 2.0.0
 
