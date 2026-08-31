@@ -4,7 +4,7 @@ title: RNA-seq Preprocessing Pipeline - Conda (Mus musculus)
 message: >
   If you use this pipeline in your research, please cite it using the
   information below. This workflow processes single-end and paired-end
-  RNA-seq data using Snakemake, Singularity, STAR, fastp, RSeQC,
+  RNA-seq data using Snakemake, Conda, STAR, fastp, RSeQC,
   samtools, and MultiQC on SLURM-based HPC systems.
 
 type: software
@@ -25,7 +25,7 @@ keywords:
   - RNA-seq
   - Snakemake
   - bioinformatics
-  - Singularity
+  - Conda
   - STAR
   - fastp
   - MultiQC
