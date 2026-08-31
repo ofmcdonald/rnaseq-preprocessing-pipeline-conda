@@ -1,4 +1,4 @@
-![version](https://img.shields.io/badge/version-2.0.0-blue)
+![GitHub Release](https://img.shields.io/github/v/release/ofmcdonald/rnaseq-preprocessing-pipeline-conda)
 
 # RNA-seq Preprocessing Pipeline - Conda (Mus musculus)
 
