@@ -1,6 +1,6 @@
 ![version](https://img.shields.io/badge/version-2.0.0-blue)
 
-# RNA-seq Preprocessing Pipeline (Mus musculus)
+# RNA-seq Preprocessing Pipeline - Conda (Mus musculus)
 
 This repository contains a fully automated Snakemake workflow for preprocessing **single-end and paired-end RNA-seq data from *Mus musculus* (mouse)**.
 
@@ -755,8 +755,8 @@ Olivia McDonald, PhD
 
 If you use this pipeline, please cite it as:
 
-McDonald OF (2026). RNA-seq Preprocessing Pipeline (Mus musculus).
-GitHub repository: [https://github.com/ofmcdonald/rnaseq-preprocessing-pipeline](https://github.com/ofmcdonald/rnaseq-preprocessing-pipeline)
+McDonald OF (2026). RNA-seq Preprocessing Pipeline - Conda (Mus musculus).
+GitHub repository: [https://github.com/ofmcdonald/rnaseq-preprocessing-pipeline-conda](https://github.com/ofmcdonald/rnaseq-preprocessing-pipeline-conda)
 Version: 2.0.0
 
 ---
